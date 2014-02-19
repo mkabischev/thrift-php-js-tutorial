@@ -28,11 +28,11 @@
                 </tr>
             </table>
         </form>
+
+        <script src="http://code.jquery.com/jquery-1.11.0.min.js"></script>
         <script src="thrift.js"></script>
         <script src="gen-js/tutorial_types.js"></script>
         <script src="gen-js/Calculator.js"></script>
-
-        <script src="http://code.jquery.com/jquery-1.11.0.min.js"></script>
 
         <script>
                 $(document).ready(function() {
@@ -49,6 +49,7 @@
                 var transport = new Thrift.Transport("/index.php");
                 var protocol = new Thrift.Protocol(transport);
                 var client = new CalculatorClient(protocol);
+
                 function calc() {
 
                     var work = new Work();
@@ -57,9 +58,9 @@
                     work.op = $("#op").val();
 
                     try {
-                        result = client.calculate(1, work);
-                        console.log(result);
-                        $('#result').val(result).css('color', 'black');
+                        client.calculate(1, work, function (result) {
+                            $('#result').val(result).css('color', 'black');
+                        });
                     } catch (ouch) {
                         $('#result').val(ouch.why).css('color', 'red');
                     }
