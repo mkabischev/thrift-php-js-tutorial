@@ -1,0 +1,10 @@
+{
+    "require": {
+        "leric/php-thrift": "0.9.0"
+    },
+    "autoload": {
+        "classmap": [
+            "gen-php"
+        ]
+    }
+}
