@@ -20,8 +20,8 @@ class CalculatorImpl implements CalculatorIf
             case Operation::SUBTRACT: return $w->num1 - $w->num2;
         }
         throw new tutorial\InvalidOperation([
-            'what' => sprintf('Unknown operation %s', $w->op),
-            'why' => 'Read specification'
+            'what' => 1,
+            'why' => sprintf('Unknown operation %s', $w->op)
         ]);
     }
 }
