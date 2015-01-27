@@ -1,0 +1,11 @@
+---
+:merge_behavior: deeper
+:logger: console
+:backends:
+  - yaml
+:yaml:
+  :datadir: /tmp/hiera
+:hierarchy:
+  - "env/%{::environment}"
+  - common
+  

@@ -1,5 +1,6 @@
 gen-php
 gen-js
-vendor
+/vendor/
 composer.lock
-nbproject
+/nbproject/
+/.vagrant/

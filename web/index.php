@@ -2,16 +2,16 @@
 
 include __DIR__.'/../vendor/autoload.php';
 
-use tutorial\CalculatorIf;
-use tutorial\CalculatorProcessor;
 use Thrift\Transport\TBufferedTransport;
 use Thrift\Transport\TPhpStream;
 use Thrift\Protocol\TJSONProtocol;
 use tutorial\Operation;
+use tutorial\CalculatorIf;
+use tutorial\CalculatorProcessor;
 
 class CalculatorImpl implements CalculatorIf
 {
-    public function calculate($logid, \tutorial\Work $w)
+    public function calculate(\tutorial\Work $w)
     {
         switch ($w->op) {
             case Operation::ADD: return $w->num1 + $w->num2;
@@ -21,7 +21,7 @@ class CalculatorImpl implements CalculatorIf
         }
         throw new tutorial\InvalidOperation([
             'what' => 1,
-            'why' => sprintf('Unknown operation %s', $w->op)
+            'why' => sprintf('Unknown operation %s', Operation::$__names[$w->op])
         ]);
     }
 }

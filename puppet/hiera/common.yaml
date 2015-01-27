@@ -1,0 +1,6 @@
+---
+# apt
+apt::always_apt_update: true
+apt::update_timeout: ~
+# thrift
+thrift::version: 0.9.2

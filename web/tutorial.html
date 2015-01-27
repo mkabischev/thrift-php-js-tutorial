@@ -46,6 +46,15 @@
                     $('table.calculator').attr('width', 500);
                 });
 
+                $(document).ajaxError(function (event, jqxhr, settings, thrownError) {
+                    if (thrownError instanceof InvalidOperation) {
+                        alert(thrownError.why);
+                    } else {
+                        console.log(thrownError);
+                        alert('Unknown error!');
+                    }
+                });
+
                 var transport = new Thrift.Transport("/index.php");
                 var protocol = new Thrift.Protocol(transport);
                 var client = new CalculatorClient(protocol);
@@ -58,7 +67,7 @@
                     work.op = $("#op").val();
 
                     try {
-                        client.calculate(1, work, function (result) {
+                        client.calculate(work, function (result) {
                             $('#result').val(result).css('color', 'black');
                         });
                     } catch (ouch) {
