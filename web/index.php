@@ -2,16 +2,19 @@
 
 include __DIR__.'/../vendor/autoload.php';
 
+use Thrift\Protocol\TJSONProtocol;
+use Thrift\TMultiplexedProcessor;
 use Thrift\Transport\TBufferedTransport;
 use Thrift\Transport\TPhpStream;
-use Thrift\Protocol\TJSONProtocol;
-use tutorial\Operation;
 use tutorial\CalculatorIf;
 use tutorial\CalculatorProcessor;
+use tutorial\InvalidOperation;
+use tutorial\Operation;
+use tutorial\Work;
 
-class CalculatorImpl implements CalculatorIf
+class CalculatorHandler implements CalculatorIf
 {
-    public function calculate(\tutorial\Work $w)
+    public function calculate(Work $w)
     {
         switch ($w->op) {
             case Operation::ADD: return $w->num1 + $w->num2;
@@ -19,15 +22,16 @@ class CalculatorImpl implements CalculatorIf
             case Operation::MULTIPLY: return $w->num1 * $w->num2;
             case Operation::SUBTRACT: return $w->num1 - $w->num2;
         }
-        throw new tutorial\InvalidOperation([
+        throw new InvalidOperation([
             'what' => 1,
             'why' => sprintf('Unknown operation %s', Operation::$__names[$w->op])
         ]);
     }
 }
 
-$handler = new CalculatorImpl();
-$processor = new CalculatorProcessor($handler);
+$processor = new TMultiplexedProcessor();
+
+$processor->registerProcessor('Calculator', new CalculatorProcessor(new CalculatorHandler()));
 
 $transport = new TBufferedTransport(new TPhpStream(TPhpStream::MODE_R | TPhpStream::MODE_W));
 

@@ -29,7 +29,7 @@
             </table>
         </form>
 
-        <script src="http://code.jquery.com/jquery-1.11.0.min.js"></script>
+        <script src="http://code.jquery.com/jquery-2.1.3.min.js"></script>
         <script src="thrift.js"></script>
         <script src="gen-js/tutorial_types.js"></script>
         <script src="gen-js/Calculator.js"></script>
@@ -56,7 +56,7 @@
                 });
 
                 var transport = new Thrift.Transport("/index.php");
-                var protocol = new Thrift.Protocol(transport);
+                var protocol = new Thrift.MultiplexProtocol('Calculator', transport);
                 var client = new CalculatorClient(protocol);
 
                 function calc() {

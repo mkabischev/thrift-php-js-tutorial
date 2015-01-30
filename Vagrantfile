@@ -15,14 +15,14 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
 
     config.vm.provision :shell, :path => "shell/bootstrap.sh"
 
-    config.vm.provision "puppet", id: "vagrant" do |puppet|
+    config.vm.provision "vagrant", type: "puppet" do |puppet|
         puppet.manifests_path = "puppet/manifests"
         puppet.module_path = "puppet/modules"
         puppet.hiera_config_path = "puppet/hiera.yaml"
     end
 
     config.vm.define "thrift", primary: true do |thrift|
-        thrift.vm.provision "puppet", id: "vagrant" do |puppet|
+        thrift.vm.provision "vagrant", type: "puppet" do |puppet|
             puppet.manifest_file = "thrift.pp"
             puppet.options = "--environment dev"
         end
