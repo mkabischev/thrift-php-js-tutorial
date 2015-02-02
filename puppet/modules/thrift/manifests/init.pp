@@ -35,7 +35,7 @@ class thrift (
 
     exec {
         'thrift-bootstrap': command => './bootstrap.sh';
-        'thrift-configure': command => './configure --without-python --without-test';
+        'thrift-configure': command => './configure --without-python --disable-tests';
         'thrift-make': command => 'make';
         'thrift-install': command => 'make install && make clean';
     }

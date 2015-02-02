@@ -14,12 +14,26 @@ struct Work {
     3: Operation op
 }
 
+struct Message {
+    1: string text,
+    2: i32 time,
+    5000:optional Message parent
+}
+
 exception InvalidOperation {
     1: i32 what,
     2: string why
 }
 
-service Calculator {
-    i32 calculate(1:Work w) throws (1:InvalidOperation ouch)
+exception MessageError {
+    1: string why,
+    2: i32 code
 }
 
+service Calculator {
+    i32 calculate(1: Work w) throws (1: InvalidOperation ouch)
+}
+
+service Messenger {
+    Message say(1:required string text, 2: Message msg) throws (1: MessageError ouch)
+}

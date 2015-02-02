@@ -11,6 +11,10 @@ use tutorial\CalculatorProcessor;
 use tutorial\InvalidOperation;
 use tutorial\Operation;
 use tutorial\Work;
+use tutorial\MessengerIf;
+use tutorial\Message;
+use tutorial\MessengerProcessor;
+use tutorial\MessageError;
 
 class CalculatorHandler implements CalculatorIf
 {
@@ -29,9 +33,28 @@ class CalculatorHandler implements CalculatorIf
     }
 }
 
+class MessengerHandler implements MessengerIf
+{
+    public function say($text, Message $msg = null)
+    {
+        if (empty($text)) {
+            throw new MessageError([
+                'why' => 'Empty message text',
+                'code' => 1
+            ]);
+        }
+        $new = new Message();
+        $new->text = $text;
+        $new->parent = $msg;
+        $new->time = time();
+        return $new;
+    }
+}
+
 $processor = new TMultiplexedProcessor();
 
 $processor->registerProcessor('Calculator', new CalculatorProcessor(new CalculatorHandler()));
+$processor->registerProcessor('Messenger', new MessengerProcessor(new MessengerHandler()));
 
 $transport = new TBufferedTransport(new TPhpStream(TPhpStream::MODE_R | TPhpStream::MODE_W));
 
