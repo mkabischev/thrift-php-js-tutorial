@@ -35,5 +35,5 @@ service Calculator {
 }
 
 service Messenger {
-    Message say(1:required string text, 2: Message msg) throws (1: MessageError ouch)
+    Message say(1:required string text, 2: Message parent) throws (1: MessageError ouch)
 }

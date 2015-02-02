@@ -35,7 +35,7 @@ class CalculatorHandler implements CalculatorIf
 
 class MessengerHandler implements MessengerIf
 {
-    public function say($text, Message $msg = null)
+    public function say($text, Message $parent = null)
     {
         if (empty($text)) {
             throw new MessageError([
@@ -45,7 +45,7 @@ class MessengerHandler implements MessengerIf
         }
         $new = new Message();
         $new->text = $text;
-        $new->parent = $msg;
+        $new->parent = $parent;
         $new->time = time();
         return $new;
     }

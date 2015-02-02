@@ -21,7 +21,7 @@
                     <td><input type="number" id="num2" value="5" onkeyup="javascript:auto_calc();"/></td></tr>
                 <tr>
                     <td>result</td>
-                    <td><input type="number" id="result" value="" readonly/></td></tr>
+                    <td><input type="text" id="result" value="" readonly/></td></tr>
                 <tr>
                     <td><input type="checkbox" id="autoupdate" checked="checked"/>autoupdate</td>
                     <td><input type="button" id="calculate" value="calculate" onclick="javascript:calc();"/></td>
@@ -44,14 +44,10 @@
 
         <script>
                 $(document).ready(function() {
-                    // remove pseudo child required for valid xhtml strict
                     $("#op").children().remove();
-                    // add operations to it's dropdown menu
                     $.each(Operation, function(key, value) {
                         $('#op').append($("<option></option>").attr("value", value).text(key));
                     });
-
-                    $('table.calculator').attr('width', 500);
                 });
 
                 $(document).ajaxError(function (event, jqxhr, settings, thrownError) {
@@ -65,10 +61,8 @@
 
                 var mp = new Thrift.Multiplexer();
                 var transport = new Thrift.Transport("/index.php");
-                var protocol = new Thrift.Protocol(transport);
 
                 function calc() {
-
                     var work = new Work();
                     work.num1 = $("#num1").val();
                     work.num2 = $("#num2").val();
@@ -101,7 +95,7 @@
                 function printMsg(msg) {
                     var text = msg.time + ': ' + msg.text;
                     if (msg.parent) {
-                        text += "<br/>" + printMsg(msg.parent);
+                        text = printMsg(msg.parent) + "<br/>" + text;
                     }
                     return text;
                 }
