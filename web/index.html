@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="utf-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <title>Hellowords Sandbox</title>
+        <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.2/css/bootstrap.min.css">
+        <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.2/css/bootstrap-theme.min.css">
+    </head>
+    <body>
+
+        <div class="container">
+            <h1>Hellowords</h1>
+            <div id="alert" class="alert alert-danger hidden" role="alert"></div>
+        </div>
+
+        <div class="container">
+            <h2>Signin</h2>
+            <form id="auth" action="" class="form-inline">
+                <div class="form-group">
+                    <input name="username" type="text" class="form-control" placeholder="Username">
+                    <input name="password" type="password" class="form-control" placeholder="Password">
+                </div>
+                <button type="submit" class="btn btn-default">Signin</button>
+            </form>
+            <div class="hidden" id="username"></div>
+        </div>
+
+        <div class="container">
+            <h2>Add word</h2>
+            <form id="add_word" action="" class="form-inline">
+                <div class="form-group">
+                    <input name="word" type="text" class="form-control" placeholder="Word">
+                    <select name="word_lang" class="form-control"></select>
+                    <input name="trans" type="text" class="form-control" placeholder="Translation">
+                    <select name="trans_lang" class="form-control"></select>
+                </div>
+                <button type="submit" class="btn btn-primary">Add word</button>
+            </form>
+        </div>
+
+        <div class="container">
+            <h2>Dictionary</h2>
+            <button id="sync" type="button" class="btn btn-default" aria-label="Left Align">
+                <span class="glyphicon glyphicon-refresh" aria-hidden="true"></span>
+            </button>
+            <p class="lead">
+                <div class="panel panel-default">
+                    <div class="panel-heading">User's words</div>
+                    <ul id="syntrans_list" class="list-group hidden">
+                        <li class="list-group-item"></li>
+                    </ul>
+                </div>
+            </p>
+        </div>
+
+        <script src="https://code.jquery.com/jquery-2.1.3.min.js"></script>
+        <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.2/js/bootstrap.min.js"></script>
+        <script src="thrift.js"></script>
+        <script src="gen-js/hellowords_types.js"></script>
+        <script src="gen-js/Synchronizer.js"></script>
+        <script src="gen-js/UserDictionaryStore.js"></script>
+        <script src="gen-js/UserStore.js"></script>
+        <script src="js/main.js"></script>
+
+        <script>
+            var app = App(Thrift);
+
+            // init data
+
+            var LanguageMap = app.getLanguageMap();
+
+            var Storage = {
+                //-------------------------------------------[ data
+                dictionary: {},
+                waiting: {},
+                //-------------------------------------------[ handlers
+                init: function () {
+                    if (localStorage.dictionary) {
+                        Storage.loadDictionary();
+                    }
+                    if (localStorage.waiting) {
+                        Storage.loadWaiting();
+                    }
+                },
+                /**
+                 * @param {AuthResult} authResult
+                 * @returns {AuthResult}
+                 */
+                saveAuthToken: function (authResult) {
+                    console.log(authResult);
+                    localStorage.authToken = authResult.authToken;
+                    return authResult;
+                },
+                getAuthToken: function () {
+                    return localStorage.authToken;
+                },
+                saveServerTime: function (time) {
+                    console.log('Server time:', time);
+                    localStorage.serverTime = time;
+                },
+                getServerTime: function () {
+                    return Number(localStorage.serverTime);
+                },
+                saveUpdateCount: function (updateCount) {
+                    console.log("USN", updateCount);
+                    localStorage.updateCount = updateCount;
+                },
+                getUpdateCount: function () {
+                    return Number(localStorage.updateCount);
+                },
+                getWaiting: function () {
+                    for (var id in Storage.waiting) {
+                        if (Storage.waiting.hasOwnProperty(id)) {
+                            return id;
+                        }
+                    }
+                },
+                loadWaiting: function () {
+                    Storage.waiting = JSON.parse(localStorage.waiting);
+                },
+                loadDictionary: function () {
+                    var dictionary = JSON.parse(localStorage.dictionary);
+                    for (var id in dictionary) {
+                        var syntrans = dictionary[id];
+                        syntrans.word = new Expression(syntrans.word);
+                        syntrans.trans = new Expression(syntrans.trans);
+                        Storage.dictionary[id] = new Syntrans(syntrans);
+                    }
+                },
+                saveDictionary: function (dictionary) {
+                    localStorage.dictionary = JSON.stringify(dictionary);
+                },
+                saveWaiting: function (waiting) {
+                    localStorage.waiting = JSON.stringify(waiting);
+                },
+                die: function () {
+                    Storage.dictionary = {};
+                    Storage.waiting = {};
+                    localStorage.clear();
+                }
+            };
+
+            // init Controller
+
+            var Controller = {
+                /**
+                 * @param {AuthResult} authResult
+                 */
+                signIn: function (authResult) {
+                    Storage.saveAuthToken(authResult);
+                    View.showUserInfo(authResult.userInfo);
+                },
+                /**
+                 * @param {SyncState} syncState
+                 */
+                startSync: function (syncState) {
+                    console.log(syncState);
+                    // check full sync
+                    var lastSyncTime = Storage.getServerTime();
+                    if (lastSyncTime !== NaN && lastSyncTime < syncState.fullSyncBefore) {
+                        console.log('Need FULL sync (lastSyncTime:', lastSyncTime, ', fullSyncBefore:', syncState.fullSyncBefore, ')');
+                        Storage.saveUpdateCount(0);
+                        Storage.saveServerTime(syncState.time);
+                        Controller.sync();
+                        return;
+                    }
+                    // load chunks
+                    var serverUpdateCount = syncState.updateCount;
+                    var lastUpdateCount = Storage.getUpdateCount() || 0;
+                    if (lastUpdateCount === serverUpdateCount) {
+                        console.info('Already synced');
+                        Controller.syncDirty();
+                        return;
+                    }
+                    console.warn('Need sync', lastUpdateCount, 'to', serverUpdateCount);
+                    Controller.loadSyncChunks(lastUpdateCount);
+                },
+                syncDirty: function () {
+                    var id = Storage.getWaiting();
+                    if (id) {
+                        Controller.syncDirtySyntrans(id);
+                    } else {
+                        Controller.updateDictionary();
+                    }
+                },
+                syncDirtySyntrans: function (dirtyId) {
+                    var dirtySyntrans = Storage.dictionary[dirtyId];
+                    console.log('Upload:', dirtySyntrans);
+                    // clean for protocol compatibility
+                    dirtySyntrans.id = null;
+                    // sync AJAX
+                    app.getUserDictionaryStoreClient().createSyntrans(
+                        Storage.getAuthToken(),
+                        dirtySyntrans,
+                        function (syntrans) {
+                            delete Storage.dictionary[dirtyId];
+                            delete Storage.waiting[dirtyId];
+                            Storage.dictionary[syntrans.id] = syntrans;
+                            Storage.saveUpdateCount(syntrans.updateSequenceNum);
+                            Controller.syncDirty();
+                        }
+                    );
+                },
+                loadSyncChunks: function (updateCount) {
+                    app.getSynchronizerClient().getSyncChunk(
+                        Storage.getAuthToken(),
+                        updateCount,
+                        10,
+                        function (syncChunk) {
+                            // download syntrans list
+                            if (syncChunk.syntransList) {
+                                for (var i in syncChunk.syntransList) {
+                                    var syntrans = syncChunk.syntransList[i];
+                                    console.log('Sync:', syntrans);
+                                    Storage.dictionary[syntrans.id] = syntrans;
+                                }
+                            }
+                            // check update count
+                            if (syncChunk.chunkHighUSN === syncChunk.updateCount) {
+                                Storage.saveUpdateCount(syncChunk.updateCount);
+                                Storage.saveServerTime(syncChunk.time);
+                                Controller.syncDirty();
+                            } else {
+                                Controller.loadSyncChunks(syncChunk.chunkHighUSN);
+                            }
+                        }
+                    );
+                },
+                updateDictionary: function () {
+                    console.log('Refresh dictionary');
+                    Storage.saveWaiting(Storage.waiting);
+                    Storage.saveDictionary(Storage.dictionary);
+                    View.drawDictionary(Storage.dictionary);
+                },
+                addSyntrans: function (syntrans) {
+                    console.log(syntrans);
+                    syntrans.id = 'dirty-' + (new Date().getTime());
+                    Storage.dictionary[syntrans.id] = syntrans;
+                    Storage.waiting[syntrans.id] = null;
+                    Controller.updateDictionary();
+                },
+                // public
+                init: function () {
+                    var authToken = Storage.getAuthToken();
+                    if (authToken) {
+                        app.getUserStoreClient().getSession(authToken, function (authResult) {
+                            Controller.signIn(authResult);
+                        });
+                    }
+                    View.drawDictionary(Storage.dictionary);
+                },
+                authenticate: function (username, passwd) {
+                    app.getUserStoreClient().authenticate(
+                        username,
+                        passwd,
+                        function (authResult) {
+                            Controller.signIn(authResult);
+                        }
+                    );
+                },
+                catchError: function (err) {
+                    console.warn(err);
+                    if (err instanceof AccessViolationException) {
+                        Storage.die();
+                        View.cleanUp();
+                    }
+                    View.showError(err);
+                },
+                sync: function () {
+                    app.getSynchronizerClient().getSyncState(
+                        Storage.getAuthToken(),
+                        function (syncState) {
+                            Controller.startSync(syncState);
+                        }
+                    );
+                },
+                /**
+                 * @param {Expression} word
+                 * @param {Expression} trans
+                 */
+                addWord: function (word, trans) {
+                    Controller.addSyntrans(new Syntrans({
+                        word: word,
+                        trans: trans
+                    }));
+                }
+            };
+
+            // init UI
+
+
+            var View = {
+                //-------------------------------------------[ widgets
+                $auth: $("#auth"),
+                $username: $("#username"),
+                $alert: $("#alert"),
+                $langSelector: $("#add_word select"),
+                $syntransList: $("#syntrans_list"),
+                //-------------------------------------------[ handlers
+                init: function () {
+                    View.$langSelector.children().remove();
+                    $.each(Language, function(key, value) {
+                        View.$langSelector.append($("<option></option>").attr("value", value).text(key));
+                    });
+
+                    $("select[name='word_lang']").val(1);
+                },
+                showUserInfo: function (userInfo) {
+                    View.$auth.addClass('hidden');
+                    View.$username.html(
+                        "Signed in as " + userInfo.id + ':' + userInfo.username
+                    ).removeClass('hidden');
+                },
+                drawExpression: function (expr) {
+                    return expr.chars + '(' + LanguageMap[expr.lang] + ')';
+                },
+                drawDictionary: function (dictionary) {
+                    View.$syntransList.addClass("hidden").children().remove();
+                    for (var id in dictionary) {
+                        var syntrans = dictionary[id];
+                        $("<li>").addClass("list-group-item").html(
+                            View.drawExpression(syntrans.word) + ' - '
+                            + View.drawExpression(syntrans.trans)
+                            + '[' + syntrans.updateSequenceNum + ']'
+                        ).appendTo(View.$syntransList);
+                    }
+                    View.$syntransList.removeClass("hidden");
+                },
+                showError: function (err) {
+                    View.$alert.html(err.toString()).removeClass("hidden");
+                    setTimeout(function(){
+                        View.$alert.addClass("hidden");
+                     }, 5000);
+                },
+                cleanUp: function () {
+                    View.$auth.removeClass("hidden");
+                    View.$username.addClass("hidden");
+                    View.$syntransList.addClass("hidden");
+                }
+            };
+
+            // start app
+
+            Storage.init();
+            View.init();
+            Controller.init();
+
+            // init UI handlers
+
+            $(document).ajaxError(function (event, jqxhr, settings, thrownError) {
+                Controller.catchError(thrownError);
+            });
+
+            $("#auth").submit(function () {
+                Controller.authenticate(
+                    this.elements.username.value,
+                    this.elements.password.value
+                );
+                return false;
+            });
+
+            $("#add_word").submit(function () {
+                var word = new Expression({
+                    chars: this.elements.word.value,
+                    lang: this.elements.word_lang.value
+                });
+                var trans = new Expression({
+                    chars: this.elements.trans.value,
+                    lang: this.elements.trans_lang.value
+                });
+                Controller.addWord(word, trans);
+                return false;
+            });
+
+            $("#sync").click(function () {
+                Controller.sync();
+            });
+        </script>
+    </body>
+</html>

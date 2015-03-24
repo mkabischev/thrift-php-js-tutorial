@@ -27,5 +27,6 @@ install_gem deep_merge
 install_puppet_module puppetlabs-apt
 install_puppet_module puppetlabs-git
 install_puppet_module puppetlabs-vcsrepo
+install_puppet_module puppetlabs-mysql
 
 exit 0

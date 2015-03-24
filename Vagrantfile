@@ -22,6 +22,7 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
     end
 
     config.vm.define "thrift", primary: true do |thrift|
+        thrift.vm.network "private_network", ip: "10.0.1.2"
         thrift.vm.provision "vagrant", type: "puppet" do |puppet|
             puppet.manifest_file = "thrift.pp"
             puppet.options = "--environment dev"

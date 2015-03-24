@@ -4,3 +4,19 @@ apt::always_apt_update: true
 apt::update_timeout: ~
 # thrift
 thrift::version: 0.9.2
+# mysql::server
+mysql::server::root_password: test
+mysql::server::service_enabled: true
+mysql::server::service_manage: true
+mysql::server::restart: true
+mysql::server::override_options:
+    mysqld:
+        default-time-zone: "+00:00"
+        collation-server: utf8_unicode_ci
+        character-set-server: utf8
+        innodb_data_file_path: ibdata1:10M:autoextend
+        innodb_file_per_table: 1
+        innodb_flush_log_at_trx_commit: 0
+        innodb_flush_method: O_DIRECT
+        innodb_buffer_pool_size: 64M
+        bind-address: 0.0.0.0

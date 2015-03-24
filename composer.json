@@ -1,10 +1,15 @@
 {
     "require": {
-        "apache/thrift": "0.9.2"
+        "apache/thrift": "0.9.2",
+        "monolog/monolog": ">1.13",
+        "doctrine/orm": ">v2.4"
     },
     "autoload": {
         "classmap": [
             "gen-php"
-        ]
+        ],
+        "psr-0": {
+            "Hellowords\\": "src/"
+        }
     }
 }
