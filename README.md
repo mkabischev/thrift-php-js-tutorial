@@ -14,4 +14,4 @@ vendor/bin/doctrine orm:schema-tool:create
 php -S localhost:9080 -t web
 ```
 
-Open the link in Chrome/Safari: http://localhost:9080/index.html
+Open [the link](http://localhost:9080/index.html) in Chrome/Safari.
