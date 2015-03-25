@@ -44,6 +44,7 @@
             <h2>Dictionary</h2>
             <button id="sync" type="button" class="btn btn-default" aria-label="Left Align">
                 <span class="glyphicon glyphicon-refresh" aria-hidden="true"></span>
+                <span id="waiting_count">0</span>
             </button>
             <p class="lead">
                 <div class="panel panel-default">
@@ -113,9 +114,15 @@
                 getWaiting: function () {
                     for (var id in Storage.waiting) {
                         if (Storage.waiting.hasOwnProperty(id)) {
-                            return id;
+                            return {
+                                id: id,
+                                action: Storage.waiting[id]
+                            };
                         }
                     }
+                },
+                getWaitingCount: function () {
+                    return Object.keys(Storage.waiting).length;
                 },
                 loadWaiting: function () {
                     Storage.waiting = JSON.parse(localStorage.waiting);
@@ -178,16 +185,20 @@
                     Controller.loadSyncChunks(lastUpdateCount);
                 },
                 syncDirty: function () {
-                    var id = Storage.getWaiting();
-                    if (id) {
-                        Controller.syncDirtySyntrans(id);
+                    var item = Storage.getWaiting();
+                    if (item) {
+                        switch (item.action) {
+                            case 'create': Controller.syncDirtySyntrans(item.id); break;
+                            case 'delete': Controller.syncDeletedSyntrans(item.id); break;
+                            default: console.error('Unknown sync action:', item.action);
+                        }
                     } else {
                         Controller.updateDictionary();
                     }
                 },
                 syncDirtySyntrans: function (dirtyId) {
                     var dirtySyntrans = Storage.dictionary[dirtyId];
-                    console.log('Upload:', dirtySyntrans);
+                    console.log('Create:', dirtySyntrans);
                     // clean for protocol compatibility
                     dirtySyntrans.id = null;
                     // sync AJAX
@@ -203,6 +214,18 @@
                         }
                     );
                 },
+                syncDeletedSyntrans: function (guid) {
+                    console.log('Delete:', guid);
+                    app.getUserDictionaryStoreClient().deleteSyntrans(
+                        Storage.getAuthToken(),
+                        guid,
+                        function (USN) {
+                            delete Storage.waiting[guid];
+                            Storage.saveUpdateCount(USN);
+                            Controller.syncDirty();
+                        }
+                    );
+                },
                 loadSyncChunks: function (updateCount) {
                     app.getSynchronizerClient().getSyncChunk(
                         Storage.getAuthToken(),
@@ -214,7 +237,13 @@
                                 for (var i in syncChunk.syntransList) {
                                     var syntrans = syncChunk.syntransList[i];
                                     console.log('Sync:', syntrans);
-                                    Storage.dictionary[syntrans.id] = syntrans;
+                                    if (syntrans.deletedAt) {
+                                        if (Storage.dictionary.hasOwnProperty(syntrans.id)) {
+                                            delete Storage.dictionary[syntrans.id];
+                                        }
+                                    } else {
+                                        Storage.dictionary[syntrans.id] = syntrans;
+                                    }
                                 }
                             }
                             // check update count
@@ -232,13 +261,16 @@
                     console.log('Refresh dictionary');
                     Storage.saveWaiting(Storage.waiting);
                     Storage.saveDictionary(Storage.dictionary);
-                    View.drawDictionary(Storage.dictionary);
+                    Controller.repaintDictionary();
+                },
+                repaintDictionary: function () {
+                    View.drawDictionary(Storage.dictionary, Storage.getWaitingCount());
                 },
                 addSyntrans: function (syntrans) {
                     console.log(syntrans);
                     syntrans.id = 'dirty-' + (new Date().getTime());
                     Storage.dictionary[syntrans.id] = syntrans;
-                    Storage.waiting[syntrans.id] = null;
+                    Storage.waiting[syntrans.id] = 'create';
                     Controller.updateDictionary();
                 },
                 // public
@@ -249,7 +281,7 @@
                             Controller.signIn(authResult);
                         });
                     }
-                    View.drawDictionary(Storage.dictionary);
+                    Controller.repaintDictionary();
                 },
                 authenticate: function (username, passwd) {
                     app.getUserStoreClient().authenticate(
@@ -285,6 +317,19 @@
                         word: word,
                         trans: trans
                     }));
+                },
+                deleteSyntrans: function (guid) {
+                    var syntrans = Storage.dictionary[guid];
+                    if (syntrans.updateSequenceNum) {
+                        console.log('Delete:', guid);
+                        delete Storage.dictionary[guid];
+                        Storage.waiting[guid] = 'delete';
+                    } else {
+                        console.log('Dropped:', guid);
+                        delete Storage.dictionary[guid];
+                        delete Storage.waiting[guid];
+                    }
+                    Controller.updateDictionary();
                 }
             };
 
@@ -298,13 +343,16 @@
                 $alert: $("#alert"),
                 $langSelector: $("#add_word select"),
                 $syntransList: $("#syntrans_list"),
+                $waitingCount: $("#waiting_count"),
                 //-------------------------------------------[ handlers
                 init: function () {
                     View.$langSelector.children().remove();
                     $.each(Language, function(key, value) {
                         View.$langSelector.append($("<option></option>").attr("value", value).text(key));
                     });
-
+                    View.$syntransList.on('click', 'a.btn', function () {
+                        Controller.deleteSyntrans(this.dataset.id);
+                    });
                     $("select[name='word_lang']").val(1);
                 },
                 showUserInfo: function (userInfo) {
@@ -316,7 +364,7 @@
                 drawExpression: function (expr) {
                     return expr.chars + '(' + LanguageMap[expr.lang] + ')';
                 },
-                drawDictionary: function (dictionary) {
+                drawDictionary: function (dictionary, waitingCount) {
                     View.$syntransList.addClass("hidden").children().remove();
                     for (var id in dictionary) {
                         var syntrans = dictionary[id];
@@ -324,9 +372,11 @@
                             View.drawExpression(syntrans.word) + ' - '
                             + View.drawExpression(syntrans.trans)
                             + '[' + syntrans.updateSequenceNum + ']'
+                            + '<a class="btn" data-id="' + id + '"><span class="glyphicon glyphicon-remove"></span></a>'
                         ).appendTo(View.$syntransList);
                     }
                     View.$syntransList.removeClass("hidden");
+                    View.$waitingCount.html(waitingCount);
                 },
                 showError: function (err) {
                     View.$alert.html(err.toString()).removeClass("hidden");

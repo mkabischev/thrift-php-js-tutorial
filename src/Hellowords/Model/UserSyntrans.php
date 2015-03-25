@@ -39,10 +39,27 @@ class UserSyntrans
     protected $updateSequenceNumber;
 
     /**
+     * @Column(type="datetime", name="created_at")
+     * @var \DateTime
+     */
+    protected $createdAt;
+
+    /**
+     * @Column(type="datetime", name="deleted_at", nullable=true)
+     * @var \DateTime
+     */
+    protected $deletedAt;
+
+    /**
      * @ManyToOne(targetEntity="User", inversedBy="syntranses", fetch="LAZY", cascade={"persist"})
      * @var User
      */
     protected $user;
+
+    public function __construct()
+    {
+        $this->createdAt = new \DateTime();
+    }
 
     public function getId()
     {
@@ -93,13 +110,44 @@ class UserSyntrans
         return $this->updateSequenceNumber;
     }
 
+    public function getCreatedAt()
+    {
+        return $this->createdAt;
+    }
+
+    public function setDeletedAt(\DateTime $datetime)
+    {
+        $this->deletedAt = $datetime;
+        return $this;
+    }
+
+    public function getDeletedAt()
+    {
+        return $this->deletedAt;
+    }
+
+    public function restore()
+    {
+        if ($this->deletedAt) {
+            $this->deletedAt = null;
+            return true;
+        }
+        return false;
+    }
+
     public function getSyntrans()
     {
-        return new Syntrans([
-            'id' => $this->getId(),
-            'word' => $this->getWord()->getExpression(),
-            'trans' => $this->getTrans()->getExpression(),
-            'updateSequenceNum' => $this->getUpdateSequenceNumber()
-        ]);
+        $syntrans = new Syntrans();
+        $syntrans->id = $this->getId();
+        $syntrans->word = $this->getWord()->getExpression();
+        $syntrans->trans = $this->getTrans()->getExpression();
+        $syntrans->updateSequenceNum = $this->getUpdateSequenceNumber();
+        $syntrans->createdAt = $this->getCreatedAt()->getTimestamp();
+
+        if (($deletedAt = $this->getDeletedAt())) {
+            $syntrans->deletedAt = $deletedAt->getTimestamp();
+        }
+
+        return $syntrans;
     }
 }

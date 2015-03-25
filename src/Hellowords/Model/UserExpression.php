@@ -91,10 +91,10 @@ class UserExpression
 
     public function getExpression()
     {
-        return new Expression([
-            'id' => $this->getId(),
-            'chars' => $this->getChars(),
-            'lang' => constant('Hellowords\Language::' . $this->getLang())
-        ]);
+        $expr = new Expression();
+        $expr->id = $this->getId();
+        $expr->chars = $this->getChars();
+        $expr->lang = constant('Hellowords\Language::' . $this->getLang());
+        return $expr;
     }
 }

@@ -104,9 +104,9 @@ class User
 
     public function getUserInfo()
     {
-        return new UserInfo([
-            'id' => $this->getId(),
-            'username' => $this->getUsername()
-        ]);
+        $userInfo = new UserInfo();
+        $userInfo->id = $this->getId();
+        $userInfo->username = $this->getUsername();
+        return $userInfo;
     }
 }

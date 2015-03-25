@@ -9,11 +9,10 @@ use Hellowords\InvalidRequestException;
 use Hellowords\Language;
 use Hellowords\Model\User;
 use Hellowords\Model\UserExpression;
-use Hellowords\Model\UserSyncState;
 use Hellowords\Model\UserSyntrans;
+use Hellowords\NotFoundException;
 use Hellowords\Repository\UserExpressionRepository;
 use Hellowords\Repository\UserRepository;
-use Hellowords\Repository\UserSyncStateRepository;
 use Hellowords\Repository\UserSyntransRepository;
 use Hellowords\Syntrans;
 use Hellowords\UserDictionaryStoreIf;
@@ -60,6 +59,14 @@ class UserDictionaryStoreService implements UserDictionaryStoreIf
         return $this->entityManager->getRepository(User::class);
     }
 
+    protected function incrementSequenceNumber(User $user)
+    {
+        $syncState = $user->getSyncState();
+        $syncState->incrementSequenceNumber();
+        $this->entityManager->persist($syncState);
+        return $syncState->getUpdateSequenceNumber();
+    }
+
     protected function findOrCreateExpression(User $user, Expression $expr)
     {
         if (empty($expr->chars)) {
@@ -93,6 +100,13 @@ class UserDictionaryStoreService implements UserDictionaryStoreIf
         return $userExpr;
     }
 
+    protected function persistUserSyntrans(User $user, UserSyntrans $userSyntrans)
+    {
+        $userSyntrans->setUpdateSequenceNumber($this->incrementSequenceNumber($user));
+        $this->entityManager->persist($userSyntrans);
+        $this->entityManager->flush();
+    }
+
     protected function addWord(UserInfo $userInfo, Expression $word, Expression $trans)
     {
         if ($word->lang === $trans->lang) {
@@ -113,23 +127,21 @@ class UserDictionaryStoreService implements UserDictionaryStoreIf
                 'trans' => $transExpr,
                 'user' => $user
             ]);
+            /* @var $userSyntrans UserSyntrans */
             if ($userSyntrans) {
+                if ($userSyntrans->restore()) {
+                    $this->persistUserSyntrans($user, $userSyntrans);
+                }
                 return $userSyntrans->getSyntrans();
             }
         }
-
-        $syncState = $user->getSyncState();
-        $syncState->incrementSequenceNumber();
-        $this->entityManager->persist($syncState);
 
         $userSyntrans = new UserSyntrans();
         $userSyntrans->setWord($wordExpr);
         $userSyntrans->setTrans($transExpr);
         $userSyntrans->setUser($user);
-        $userSyntrans->setUpdateSequenceNumber($syncState->getUpdateSequenceNumber());
-        $this->entityManager->persist($userSyntrans);
 
-        $this->entityManager->flush();
+        $this->persistUserSyntrans($user, $userSyntrans);
 
         return $userSyntrans->getSyntrans();
     }
@@ -137,5 +149,28 @@ class UserDictionaryStoreService implements UserDictionaryStoreIf
     public function createSyntrans($authToken, Syntrans $syntrans)
     {
         return $this->addWord($this->getSessionUser($authToken), $syntrans->word, $syntrans->trans);
+    }
+
+    public function deleteSyntrans($authToken, $guid)
+    {
+        $userInfo = $this->getSessionUser($authToken);
+
+        $user = $this->getUserRepository()->find($userInfo->id);
+        /* @var $user User */
+
+        $userSyntrans = $this->getUserSyntransRepository()->find($guid);
+        /* @var $userSyntrans UserSyntrans */
+
+        if (!$userSyntrans) {
+            throw new NotFoundException([
+                'message' => sprintf('The syntrans "%s" not found', $guid)
+            ]);
+        }
+
+        $userSyntrans->setDeletedAt(new \DateTime());
+
+        $this->persistUserSyntrans($user, $userSyntrans);
+
+        return $userSyntrans->getUpdateSequenceNumber();
     }
 }
