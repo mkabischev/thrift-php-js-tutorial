@@ -388,6 +388,7 @@
                     View.$auth.removeClass("hidden");
                     View.$username.addClass("hidden");
                     View.$syntransList.addClass("hidden");
+                    View.$waitingCount.html(0);
                 }
             };
 
@@ -408,6 +409,7 @@
                     this.elements.username.value,
                     this.elements.password.value
                 );
+                this.reset();
                 return false;
             });
 
@@ -421,6 +423,7 @@
                     lang: this.elements.trans_lang.value
                 });
                 Controller.addWord(word, trans);
+                this.elements.trans.value = this.elements.word.value = '';
                 return false;
             });
 

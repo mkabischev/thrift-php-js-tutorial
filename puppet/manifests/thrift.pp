@@ -4,6 +4,8 @@ include git
 include thrift
 include mysql::server
 
+Class[apt] -> Package <| |>
+
 Class[apt] -> Class[git] -> Class[thrift]
 
 mysql::db { 'test':

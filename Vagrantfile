@@ -1,6 +1,12 @@
 # -*- mode: ruby -*-
 # vi: set ft=ruby :
 
+$generate_thrift = <<SCRIPT
+echo Generate Thrift...
+cd /vagrant
+bash build.sh hellowords.thrift
+SCRIPT
+
 VAGRANTFILE_API_VERSION = "2"
 
 Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
@@ -27,6 +33,7 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
             puppet.manifest_file = "thrift.pp"
             puppet.options = "--environment dev"
         end
+        thrift.vm.provision :shell, inline: $generate_thrift
     end
 
 end
