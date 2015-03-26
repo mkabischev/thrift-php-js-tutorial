@@ -6,8 +6,8 @@ typedef string AuthToken
 typedef i32 Timestamp
 
 enum Language {
-    RU,
-    EN
+    RU = 0,
+    EN = 1
 }
 
 struct UserInfo {
