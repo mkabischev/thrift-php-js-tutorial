@@ -2,18 +2,12 @@
 
 require_once __DIR__ . '/vendor/autoload.php';
 
-use Doctrine\ORM\Tools\Setup;
-use Doctrine\ORM\EntityManager;
+use Symfony\Component\Config\FileLocator;
+use Symfony\Component\DependencyInjection\ContainerBuilder;
+use Symfony\Component\DependencyInjection\Loader\YamlFileLoader;
 
-$isDevMode = true;
-$config = Setup::createAnnotationMetadataConfiguration([__DIR__ . '/src'], $isDevMode);
+$container = new ContainerBuilder();
 
-$conn = [
-    'driver' => 'pdo_mysql',
-    'host' => '10.0.1.2',
-    'user' => 'root',
-    'password' => 'test',
-    'dbname' => 'test',
-];
-
-$entityManager = EntityManager::create($conn, $config);
+$loader = new YamlFileLoader($container, new FileLocator(__DIR__ . '/config'));
+$loader->load('parameters.yml');
+$loader->load('services.yml');

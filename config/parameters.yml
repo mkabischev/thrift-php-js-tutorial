@@ -1,0 +1,10 @@
+---
+parameters:
+    app.name: hellowords
+    dev_mode: true
+    db.connection:
+        driver: pdo_mysql
+        host: 10.0.1.2
+        user: root
+        password: test
+        dbname: test

@@ -1,0 +1,65 @@
+---
+services:
+    doctrine.configuration.factory:
+        class: Doctrine\ORM\Tools\Setup
+    doctrine.configuration:
+        class: Doctrine\ORM\Configuration
+        factory: ["@doctrine.configuration.factory", createAnnotationMetadataConfiguration]
+        arguments:
+            - ["src"]
+            - "%dev_mode%"
+    doctrine.entity_manager:
+        class: Doctrine\ORM\EntityManager
+        factory: [Doctrine\ORM\EntityManager, create]
+        arguments:
+            - "%db.connection%"
+            - "@doctrine.configuration"
+    doctrine.console.helpset:
+        class: Symfony\Component\Console\Helper\HelperSet
+        factory: [Doctrine\ORM\Tools\Console\ConsoleRunner, createHelperSet]
+        arguments:
+            - "@doctrine.entity_manager"
+    logger.handler:
+        class: Monolog\Handler\ErrorLogHandler
+    logger:
+        class: Monolog\Logger
+        arguments:
+            - "%app.name%"
+        calls:
+            - [pushHandler, ["@logger.handler"]]
+    # Thrift definition
+    thrift.processor:
+        class: Thrift\TMultiplexedProcessor
+        calls:
+            - [registerProcessor, ["UserStore", "@hellowords.processor.user_store"]]
+            - [registerProcessor, ["Synchronizer", "@hellowords.processor.synchronizer"]]
+            - [registerProcessor, ["UserDictionaryStore", "@hellowords.processor.user_dictionary_store"]]
+    # Hellowords services
+    hellowords.service.user_store:
+        class: Hellowords\Service\UserStoreService
+        arguments:
+            - "@doctrine.entity_manager"
+            - "@logger"
+    hellowords.service.synchronizer:
+        class: Hellowords\Service\Synchronizer
+        arguments:
+            - "@doctrine.entity_manager"
+            - "@logger"
+    hellowords.service.user_dictionary_store:
+        class: Hellowords\Service\UserDictionaryStoreService
+        arguments:
+            - "@doctrine.entity_manager"
+            - "@logger"
+    # Hellowords processors
+    hellowords.processor.user_store:
+        class: Hellowords\UserStoreProcessor
+        arguments:
+            - "@hellowords.service.user_store"
+    hellowords.processor.synchronizer:
+        class: Hellowords\SynchronizerProcessor
+        arguments:
+            - "@hellowords.service.synchronizer"
+    hellowords.processor.user_dictionary_store:
+        class: Hellowords\UserDictionaryStoreProcessor
+        arguments:
+            - "@hellowords.service.user_dictionary_store"

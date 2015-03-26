@@ -4,7 +4,8 @@
 You should install following software:
 - php 5.5+ (with mysqlnd)
 - composer
-- vagrant
+- VirtualBox
+- Vagrant
 
 ## How to run?
 ```
