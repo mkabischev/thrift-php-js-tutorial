@@ -4,3 +4,4 @@ gen-js
 composer.lock
 /nbproject/
 /.vagrant/
+/build/
