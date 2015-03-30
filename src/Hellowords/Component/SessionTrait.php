@@ -14,20 +14,15 @@ trait SessionTrait
      */
     public function getSessionUser($authToken)
     {
+        session_id($authToken);
         session_start();
 
-        if (empty($_SESSION['authToken']) || $_SESSION['authToken'] !== $authToken) {
+        if (empty($_SESSION['userInfo'])) {
             throw new AccessViolationException([
                 'message' => 'AuthToken is corrupted'
             ]);
         }
 
         return $_SESSION['userInfo'];
-    }
-
-    public function saveSession($authToken, UserInfo $userInfo)
-    {
-        $_SESSION['authToken'] = $authToken;
-        $_SESSION['userInfo'] = $userInfo;
     }
 }

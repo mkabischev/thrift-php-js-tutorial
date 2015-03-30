@@ -95,6 +95,7 @@ class UserStoreService implements UserStoreIf
     public function getSession($authToken)
     {
         $userInfo = $this->getSessionUser($authToken);
+        session_regenerate_id(true);
         return $this->createAuthResult($userInfo);
     }
 
@@ -104,13 +105,11 @@ class UserStoreService implements UserStoreIf
      */
     private function createAuthResult(UserInfo $userInfo)
     {
-        $authToken = $this->security->generateSalt();
-
         $authResult = new AuthResult();
         $authResult->userInfo = $userInfo;
-        $authResult->authToken = $authToken;
+        $authResult->authToken = session_id();
 
-        $this->saveSession($authToken, $userInfo);
+        $_SESSION['userInfo'] = $userInfo;
 
         return $authResult;
     }
