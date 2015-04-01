@@ -14,7 +14,8 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
     config.vm.box = "ubuntu/trusty64"
 
     config.vm.provider "virtualbox" do |vb|
-        vb.customize ["modifyvm", :id, "--memory", "1280"]
+        vb.memory = 1024
+        vb.customize ["modifyvm", :id, "--natdnsproxy1", "off"]
     end
 
     config.vm.provision :file, :source => "puppet/hiera", :destination => "/tmp"
