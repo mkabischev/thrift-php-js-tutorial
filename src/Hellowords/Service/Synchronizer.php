@@ -63,6 +63,7 @@ class Synchronizer implements SynchronizerIf
 
         $syncChunk = new SyncChunk();
         $syncChunk->time = time();
+        $syncChunk->chunkHighUSN = 0;
 
         $this->loadSyntranses($syncChunk, $userInfo->id, $afterUSN, $maxEntities);
 
