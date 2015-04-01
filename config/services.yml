@@ -6,7 +6,7 @@ services:
         class: Doctrine\ORM\Configuration
         factory: ["@doctrine.configuration.factory", createAnnotationMetadataConfiguration]
         arguments:
-            - ["src"]
+            - ["%project_dir%/src"]
             - "%dev_mode%"
     doctrine.entity_manager:
         class: Doctrine\ORM\EntityManager

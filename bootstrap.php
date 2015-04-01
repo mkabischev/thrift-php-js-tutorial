@@ -24,6 +24,8 @@ if (file_exists($cachefile)) {
     $loader->load('parameters.yml');
     $loader->load('services.yml');
 
+    $container->setParameter('project_dir', __DIR__);
+
     if (!$container->getParameter('dev_mode')) {
         $container->compile();
 
