@@ -71,6 +71,8 @@ class Synchronizer implements SynchronizerIf
 
         $syncChunk->updateCount = $userSyncState->getUpdateSequenceNumber();
 
+        $this->logger->debug(sprintf('The user "%s" synced after USN "%s".', $userInfo->id, $afterUSN));
+
         return $syncChunk;
     }
 

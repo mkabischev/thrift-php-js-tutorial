@@ -131,6 +131,21 @@ class UserDictionaryStoreService implements UserDictionaryStoreIf
             if ($userSyntrans) {
                 if ($userSyntrans->restore()) {
                     $this->persistUserSyntrans($user, $userSyntrans);
+                    $this->logger->debug(
+                        sprintf(
+                            'The user "%s" restored the syntrans "%s".',
+                            $user->getId(),
+                            $userSyntrans->getId()
+                        )
+                    );
+                } else {
+                    $this->logger->debug(
+                        sprintf(
+                            'The syntrans "%s" already exists in the user "%s".',
+                            $userSyntrans->getId(),
+                            $user->getId()
+                        )
+                    );
                 }
                 return $userSyntrans->getSyntrans();
             }
@@ -142,6 +157,14 @@ class UserDictionaryStoreService implements UserDictionaryStoreIf
         $userSyntrans->setUser($user);
 
         $this->persistUserSyntrans($user, $userSyntrans);
+
+        $this->logger->debug(
+            sprintf(
+                'The user "%s" created the syntrans "%s".',
+                $user->getId(),
+                $userSyntrans->getId()
+            )
+        );
 
         return $userSyntrans->getSyntrans();
     }
@@ -170,6 +193,14 @@ class UserDictionaryStoreService implements UserDictionaryStoreIf
         $userSyntrans->setDeletedAt(new \DateTime());
 
         $this->persistUserSyntrans($user, $userSyntrans);
+
+        $this->logger->debug(
+            sprintf(
+                'The user "%s" deleted the syntrans "%s".',
+                $user->getId(),
+                $userSyntrans->getId()
+            )
+        );
 
         return $userSyntrans->getUpdateSequenceNumber();
     }
