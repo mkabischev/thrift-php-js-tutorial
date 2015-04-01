@@ -49,6 +49,8 @@ class Synchronizer implements SynchronizerIf
     {
         $userSyntranses = $this->getUserSyntransRepository()->findByUserAfterUSN($userId, $afterUSN, $maxEntities);
 
+        $chunk->syntransList = [];
+
         foreach ($userSyntranses as $userSyntrans) {
             /* @var $userSyntrans UserSyntrans */
             $syntrans = $userSyntrans->getSyntrans();
