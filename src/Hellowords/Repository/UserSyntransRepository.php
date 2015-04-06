@@ -20,7 +20,7 @@ class UserSyntransRepository extends EntityRepository
                 $qb->expr()->eq('s.user', $userId),
                 $qb->expr()->gt('s.updateSequenceNumber', $updateSequenceNumber)
             )
-            ->orderBy('s.id', 'ASC')
+            ->orderBy('s.updateSequenceNumber', 'ASC')
             ->setMaxResults($maxEntities)
             ->getQuery();
 
