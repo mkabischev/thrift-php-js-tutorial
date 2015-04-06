@@ -369,7 +369,8 @@
                     for (var id in dictionary) {
                         var syntrans = dictionary[id];
                         $("<li>").addClass("list-group-item").html(
-                            View.drawExpression(syntrans.word) + ' - '
+                            syntrans.id + '. '
+                            + View.drawExpression(syntrans.word) + ' – '
                             + View.drawExpression(syntrans.trans)
                             + '[' + syntrans.updateSequenceNum + ']'
                             + '<a class="btn" data-id="' + id + '"><span class="glyphicon glyphicon-remove"></span></a>'
